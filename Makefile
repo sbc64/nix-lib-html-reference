@@ -1,8 +1,8 @@
 # Required env (set automatically by `nix develop` or the flake's packages.default):
 #   LIB_DOCS       - directory of *.md from nixpkgs lib-function-docs derivation
 #   HTMX_JS        - path to htmx.min.js
-#   THEME_REPO     - root of jez/pandoc-markdown-css-theme
-#   BUILTINS_JSON  - path to `nix __dump-builtins` output
+#   THEME_REPO     - root of jez/pandoc-markdown-css-theme  (only skylighting css used)
+#   BUILTINS_JSON  - path to JSON dump produced by `nix __dump-language`
 
 SHELL := bash
 
@@ -15,24 +15,27 @@ PANDOC_FLAGS := -f markdown -t html --toc --toc-depth=2
 
 all: site
 
-site: assets landing fragments
+site: assets fragments landing
 
-assets: site/assets/htmx.min.js site/assets/theme.css
+assets: site/assets/htmx.min.js site/assets/skylighting-solarized-theme.css
 
 site/assets/htmx.min.js: $(HTMX_JS)
 	@mkdir -p site/assets
 	cp $< $@
 
-site/assets/theme.css: $(THEME_REPO)/public/css/theme.css
+site/assets/skylighting-solarized-theme.css: $(THEME_REPO)/public/css/skylighting-solarized-theme.css
 	@mkdir -p site/assets
 	cp $< $@
-	cp $(THEME_REPO)/public/css/skylighting-solarized-theme.css site/assets/
 
+# Landing depends on fragments since the sidebar nav is generated from them.
 landing: site/index.html site/fragments/intro.html
 
-site/index.html: web/index.html
+site/index.html: web/index.html site/nav.html
 	@mkdir -p site
-	cp $< $@
+	awk '/<!-- NAV -->/{system("cat site/nav.html"); next} {print}' web/index.html > $@
+
+site/nav.html: $(LIB_FRAGMENTS) site/fragments/builtins.html scripts/gen-nav.sh
+	bash scripts/gen-nav.sh site/fragments > $@
 
 site/fragments/intro.html: web/intro.md
 	@mkdir -p site/fragments
