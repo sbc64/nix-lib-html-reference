@@ -1,4 +1,6 @@
 .direnv
+result
+result-*
+site
 doc-gen
-xml-doc
-builtins
+builtins.json

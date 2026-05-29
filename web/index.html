@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nix lib &amp; builtins reference</title>
+<link rel="stylesheet" href="assets/theme.css">
+<link rel="stylesheet" href="assets/skylighting-solarized-theme.css">
+<script src="assets/htmx.min.js" defer></script>
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; }
+  .layout { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+  nav.sidebar {
+    background: #f6f6f6; border-right: 1px solid #ddd; padding: 1rem;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  nav.sidebar h1 { font-size: 1rem; margin: 0 0 .5rem; }
+  nav.sidebar ul { list-style: none; padding: 0; margin: 0; }
+  nav.sidebar li { margin: .15rem 0; }
+  nav.sidebar a {
+    display: block; padding: .25rem .5rem; border-radius: 4px;
+    color: #06c; text-decoration: none; cursor: pointer;
+  }
+  nav.sidebar a:hover, nav.sidebar a.active { background: #e5e5e5; }
+  main { padding: 1rem 2rem; max-width: 900px; }
+  main pre { overflow-x: auto; }
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+    nav.sidebar { position: static; height: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar" hx-target="#content" hx-swap="innerHTML" hx-push-url="true">
+    <h1>Nix reference</h1>
+    <ul id="nav">
+      <li><a hx-get="fragments/intro.html" data-path="">intro</a></li>
+      <li><a hx-get="fragments/builtins.html" data-path="builtins">builtins</a></li>
+      <li><a hx-get="fragments/lib-asserts.html" data-path="asserts">lib.asserts</a></li>
+      <li><a hx-get="fragments/lib-attrsets.html" data-path="attrsets">lib.attrsets</a></li>
+      <li><a hx-get="fragments/lib-cli.html" data-path="cli">lib.cli</a></li>
+      <li><a hx-get="fragments/lib-customisation.html" data-path="customisation">lib.customisation</a></li>
+      <li><a hx-get="fragments/lib-debug.html" data-path="debug">lib.debug</a></li>
+      <li><a hx-get="fragments/lib-derivations.html" data-path="derivations">lib.derivations</a></li>
+      <li><a hx-get="fragments/lib-fetchers.html" data-path="fetchers">lib.fetchers</a></li>
+      <li><a hx-get="fragments/lib-fileset.html" data-path="fileset">lib.fileset</a></li>
+      <li><a hx-get="fragments/lib-filesystem.html" data-path="filesystem">lib.filesystem</a></li>
+      <li><a hx-get="fragments/lib-fixedPoints.html" data-path="fixedPoints">lib.fixedPoints</a></li>
+      <li><a hx-get="fragments/lib-generators.html" data-path="generators">lib.generators</a></li>
+      <li><a hx-get="fragments/lib-gvariant.html" data-path="gvariant">lib.gvariant</a></li>
+      <li><a hx-get="fragments/lib-lists.html" data-path="lists">lib.lists</a></li>
+      <li><a hx-get="fragments/lib-meta.html" data-path="meta">lib.meta</a></li>
+      <li><a hx-get="fragments/lib-options.html" data-path="options">lib.options</a></li>
+      <li><a hx-get="fragments/lib-path.html" data-path="path">lib.path</a></li>
+      <li><a hx-get="fragments/lib-sources.html" data-path="sources">lib.sources</a></li>
+      <li><a hx-get="fragments/lib-strings.html" data-path="strings">lib.strings</a></li>
+      <li><a hx-get="fragments/lib-trivial.html" data-path="trivial">lib.trivial</a></li>
+      <li><a hx-get="fragments/lib-versions.html" data-path="versions">lib.versions</a></li>
+    </ul>
+  </nav>
+  <main id="content" hx-get="fragments/intro.html" hx-trigger="load once"></main>
+</div>
+<script>
+  // Deep-link restore: if URL ends with /<slug>, load matching fragment.
+  document.addEventListener('DOMContentLoaded', () => {
+    const path = location.pathname.replace(/^.*\//, '').replace(/\.html$/, '');
+    const link = document.querySelector(`nav a[data-path="${path}"]`);
+    if (link && path) {
+      // Cancel the default load-once on #content; trigger the nav link instead.
+      const main = document.getElementById('content');
+      main.removeAttribute('hx-trigger');
+      main.removeAttribute('hx-get');
+      htmx.trigger(link, 'click');
+    }
+    // Active link highlighting.
+    document.body.addEventListener('htmx:afterOnLoad', (e) => {
+      document.querySelectorAll('nav a.active').forEach(a => a.classList.remove('active'));
+      if (e.detail.elt.matches('nav a')) e.detail.elt.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
