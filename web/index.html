@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Nix lib &amp; builtins reference</title>
 <link rel="stylesheet" href="assets/skylighting-solarized-theme.css">
-<script src="assets/htmx.min.js" defer></script>
+<script src="assets/htmx.min.js"></script>
 <style>
   :root {
     --fg: #1a1a1a;
@@ -44,44 +44,47 @@
     font-size: .82rem; text-transform: uppercase; letter-spacing: .06em;
     color: var(--muted); margin: 0 .25rem .75rem;
   }
-  nav.sidebar details { margin: 0 0 .15rem; }
+  nav.sidebar .nav-top {
+    display: block; padding: .3rem .65rem; margin: 0 0 .35rem;
+    color: var(--fg); text-decoration: none; font-weight: 500;
+    border-radius: 4px;
+  }
+  nav.sidebar .nav-top:hover,
+  nav.sidebar .nav-top.active { background: var(--accent-bg); color: var(--accent); }
+
+  nav.sidebar details { margin: 0; }
   nav.sidebar summary {
-    list-style: none; cursor: pointer;
-    padding: .25rem .5rem; border-radius: 4px;
-    display: flex; align-items: center; gap: .35rem;
-    user-select: none;
+    list-style: none; cursor: pointer; user-select: none;
+    padding: .3rem .65rem; border-radius: 4px;
+    color: var(--fg); font-weight: 500;
+    display: flex; align-items: center; gap: .4rem;
   }
   nav.sidebar summary::-webkit-details-marker { display: none; }
   nav.sidebar summary::before {
-    content: "▸"; color: var(--muted); font-size: .7em;
+    content: "▸"; color: var(--muted); font-size: .65em;
     transition: transform .12s;
-    width: .8em; display: inline-block;
+    width: .8em; display: inline-block; text-align: center;
   }
   nav.sidebar details[open] > summary::before { transform: rotate(90deg); }
-  nav.sidebar details:not(:has(ul)) > summary::before { visibility: hidden; }
-  nav.sidebar summary a {
-    flex: 1; color: var(--fg); text-decoration: none;
-    font-weight: 500;
-  }
-  nav.sidebar summary:hover { background: rgba(0,0,0,.04); }
+  nav.sidebar summary:hover { background: rgba(0,0,0,.05); }
+
   nav.sidebar ul {
-    list-style: none; padding: 0 0 .25rem 1.5rem; margin: 0;
+    list-style: none; padding: 0 0 .35rem 1.3rem; margin: 0;
     border-left: 1px solid var(--side-border);
-    margin-left: .85rem;
+    margin-left: .9rem;
   }
   nav.sidebar li { margin: 0; }
   nav.sidebar li a {
-    display: block; padding: .15rem .5rem; border-radius: 3px;
+    display: block; padding: .15rem .55rem; border-radius: 3px;
     color: var(--accent); text-decoration: none;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 12px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  nav.sidebar li a:hover { background: rgba(0,0,0,.04); }
-  nav.sidebar a.active,
-  nav.sidebar summary:has(a.active) {
-    background: var(--accent-bg); color: var(--accent);
-  }
+  nav.sidebar li a:hover { background: rgba(0,0,0,.05); }
+  nav.sidebar a.active { background: var(--accent-bg); }
+  nav.sidebar .nav-overview { font-style: italic; opacity: .85; }
+
   /* ---------- main ---------- */
   main {
     padding: 2rem 2.5rem;
@@ -119,11 +122,7 @@
     color: var(--muted);
   }
   main a { color: var(--accent); }
-  /* tiny anchored target highlight */
-  main :target {
-    background: #fff4c2;
-    transition: background 1.5s ease-out;
-  }
+  main :target { background: #fff4c2; transition: background 1.5s ease-out; }
   @media (max-width: 760px) {
     .layout { grid-template-columns: 1fr; }
     nav.sidebar { position: static; height: auto; max-height: 50vh; }
@@ -139,61 +138,59 @@
       <!-- NAV -->
     </div>
   </nav>
-  <main id="content" hx-get="fragments/intro.html" hx-trigger="load once"></main>
+  <main id="content"><p>Loading…</p></main>
 </div>
 <script>
-  // 1. Restore deep-link on initial load: URL `/foo` -> click matching summary link.
-  // 2. Scroll into the in-fragment anchor after htmx swap completes.
-  // 3. Toggle active highlight on nav links.
   (function () {
-    const main = () => document.getElementById('content');
+    const sidebar = document.querySelector('nav.sidebar');
+    const main    = document.getElementById('content');
 
     function clearActive() {
-      document.querySelectorAll('nav.sidebar a.active').forEach(a => a.classList.remove('active'));
+      sidebar.querySelectorAll('a.active').forEach(a => a.classList.remove('active'));
     }
 
-    function scrollToAnchor(id) {
-      if (!id) return;
-      // wait for layout
-      requestAnimationFrame(() => {
-        // The id may contain a dot (e.g. builtins.add-e1-e2) which is valid for getElementById.
-        const el = document.getElementById(id);
-        if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      // Active highlighting + scroll-to-anchor after every swap.
-      document.body.addEventListener('htmx:afterSwap', (e) => {
-        const trigger = e.detail.requestConfig && e.detail.requestConfig.elt;
-        if (trigger && trigger.matches('nav.sidebar a')) {
-          clearActive();
-          trigger.classList.add('active');
-          // Expand parent <details> if collapsed.
-          const det = trigger.closest('details');
-          if (det && !det.open) det.open = true;
-          const anchor = trigger.dataset.anchor;
-          if (anchor) scrollToAnchor(anchor);
-          else main().scrollTo(0, 0);
-        }
-      });
-
-      // Deep-link restore from URL: /path#anchor or /path.
-      const slug = location.pathname.replace(/^.*\//, '').replace(/\.html$/, '');
-      const anchor = location.hash.replace(/^#/, '');
-      if (slug) {
-        const link = document.querySelector(`nav.sidebar a[data-path="${slug}"][data-anchor="${anchor}"]`)
-                  || document.querySelector(`nav.sidebar a[data-path="${slug}"]:not([data-anchor])`)
-                  || document.querySelector(`nav.sidebar a[data-path="${slug}"]`);
-        if (link) {
-          const m = main();
-          m.removeAttribute('hx-trigger');
-          m.removeAttribute('hx-get');
-          // Trigger the link to load its fragment.
-          htmx.trigger(link, 'click');
-        }
+    function activate(link, anchorId) {
+      clearActive();
+      link.classList.add('active');
+      const det = link.closest('details');
+      if (det && !det.open) det.open = true;
+      link.scrollIntoView({ block: 'nearest' });
+      if (anchorId) {
+        requestAnimationFrame(() => {
+          const el = document.getElementById(anchorId);
+          if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          else window.scrollTo(0, 0);
+        });
+      } else {
+        window.scrollTo(0, 0);
       }
+    }
+
+    document.body.addEventListener('htmx:afterSwap', (evt) => {
+      const trig = evt.detail.requestConfig && evt.detail.requestConfig.elt;
+      if (!trig || !sidebar.contains(trig)) return;
+      activate(trig, trig.dataset.anchor);
     });
+
+    document.body.addEventListener('htmx:responseError', (evt) => {
+      main.innerHTML = '<p><strong>Request failed:</strong> ' +
+        evt.detail.pathInfo.requestPath + ' returned ' +
+        evt.detail.xhr.status + '</p>';
+    });
+    document.body.addEventListener('htmx:sendError', () => {
+      main.innerHTML = '<p><strong>Network error.</strong></p>';
+    });
+
+    // Load intro on first paint.
+    function loadIntro() {
+      const introLink = sidebar.querySelector('a.nav-top[data-path="intro"]');
+      if (introLink) htmx.trigger(introLink, 'click');
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadIntro);
+    } else {
+      loadIntro();
+    }
   })();
 </script>
 </body>
